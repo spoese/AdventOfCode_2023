@@ -55,3 +55,26 @@ possible <- games |>
         filter(Possible)
 
 sum(possible$ID)        
+
+#Part 2
+
+games_backup |> 
+        rowwise() |> 
+        mutate(ID = str_extract(Games, "Game \\d+") |> 
+                       str_sub(start = 6),
+               get_games(Games)) |> 
+        pivot_longer(cols = c(-Games,-ID), names_to = "Color_Trial", values_to = "N") |> 
+        rowwise() |> 
+        mutate(Color = str_split(Color_Trial, "_")[[1]][1],
+               Trial = str_split(Color_Trial, "_")[[1]][2]) |> 
+        select(-Games, -Color_Trial) |> 
+        pivot_wider(id_cols = c(ID, Trial),
+                    names_from = Color,
+                    values_from = N) |> 
+        summarize(Max_Green = max(Green, na.rm = TRUE),
+                  Max_Red = max(Red, na.rm = TRUE),
+                  Max_Blue = max(Blue, na.rm = TRUE),
+                  .by = ID) |> 
+        mutate(Power = Max_Green * Max_Red * Max_Blue) |> 
+        pull(Power) |> 
+        sum()
