@@ -17,18 +17,22 @@ get_numbers <- function(x) {
         tibble(numbers = as.integer(str_sub(cards_backup, start = x, end = x+1)))
 }
 
+# test_numbers <- function(x) {
+#         tibble(numbers = as.integer(str_sub(test_backup, start = x, end = x+1)))
+# }
+
 # tibble(id = as.integer(str_sub(test_backup, start = 6, end = 6)),
 #        winners = list_cbind(map(seq(9, 21, by = 3), get_numbers)),
-#        options = list_cbind(map(seq(26, 47, by = 3), get_numbers))) |> 
-#         rowwise() |> 
-#         mutate(Num_Winners = sum(winners %in% options)) |> 
-#         select(id, Num_Winners) |> 
+#        options = list_cbind(map(seq(26, 47, by = 3), get_numbers))) |>
+#         rowwise() |>
+#         mutate(Num_Winners = sum(winners %in% options)) |>
+#         select(id, Num_Winners) |>
 #         mutate(Points = trunc(2^(Num_Winners-1)))
 
 
 tibble(id = as.integer(str_sub(cards_backup, start = 6, end = 8)),
-               winners = list_cbind(map(seq(11, 38, by = 3), get_numbers)),
-               options = list_cbind(map(seq(43, 115, by = 3), get_numbers))) |> 
+       winners = list_cbind(map(seq(11, 38, by = 3), get_numbers)),
+       options = list_cbind(map(seq(43, 115, by = 3), get_numbers))) |> 
         rowwise() |> 
         mutate(Num_Winners = sum(winners %in% options)) |> 
         select(id, Num_Winners) |> 
@@ -38,3 +42,45 @@ tibble(id = as.integer(str_sub(cards_backup, start = 6, end = 8)),
 
 #Part 2
 
+base_backup <- tibble(id = as.integer(str_sub(cards_backup, start = 6, end = 6)),
+                     winners = list_cbind(map(seq(11, 38, by = 3), get_numbers)),
+                     options = list_cbind(map(seq(43, 115, by = 3), get_numbers))) |> 
+        rowwise() |> 
+        mutate(Num_Winners = sum(winners %in% options),
+               copies = 1) |> 
+        select(id, copies, Num_Winners)
+
+test_backup <- tibble(id = as.integer(str_sub(test_backup, start = 6, end = 6)),
+                      winners = list_cbind(map(seq(9, 21, by = 3), test_numbers)),
+                      options = list_cbind(map(seq(26, 47, by = 3), test_numbers))) |>
+        rowwise() |>
+        mutate(Num_Winners = sum(winners %in% options),
+               copies = 1) |>
+        select(id, copies, Num_Winners)
+
+test_table <- test_backup
+
+base_table <- base_backup
+
+for (i in 1:198) {
+        idx_winners <- base_table$Num_Winners[i]
+        idx_copies <- base_table$copies[i]
+        if (idx_winners > 0 & i != 198) {
+                base_table$copies[i+1:min(i+idx_winners,198)] <- base_table$copies[i+1:min(i+idx_winners,198)] + idx_copies
+        }
+}
+
+# for (i in 1:5) {
+#         idx_winners <- test_table$Num_Winners[i]
+#         idx_copies <- test_table$copies[i]
+#         if (idx_winners > 0 & i != 198) {
+#                 test_table$copies[(i+1):min(i+idx_winners,198)] <- test_table$copies[(i+1):min(i+idx_winners,198)] + idx_copies
+#         }
+# }
+# test_table |> 
+#         pull(copies) |> 
+#         sum()
+
+base_table |> 
+        pull(copies) |> 
+        sum()
