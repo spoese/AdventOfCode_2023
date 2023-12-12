@@ -1,5 +1,6 @@
 library(tidyverse)
 library(readxl)
+library(intervals)
 
 seeds_backup <- read_excel("Data.xlsx", col_names = FALSE, n_max = 1) |> 
         pull("...1")
@@ -99,36 +100,56 @@ map_dbl(seeds, get_location) |>
         min()
 #Part 2
 
-#Need to redo by working intervals backwards
-
-seed_map <- tibble(Starts = seeds[seq(1, 19, by = 2)],
-                   Lengths = seeds[seq(2, 20, by = 2)]) |> 
+seeds_bounds <- tibble(Starts = seeds[seq(1, 19, by = 2)],
+                       Lengths = seeds[seq(2, 20, by = 2)]) |>
         mutate(Ends = Starts + Lengths - 1)
 
-location_back <- function(output) {
-        for (j in 7:1) {
-                for (i in 1:length(map_list[[j]]$Source)) {
-                        if (output >= map_list[[j]]$Dest[[i]] & output <= map_list[[j]]$Max_Dest[i]) {
-                                output <- output - map_list[[j]]$Operation[i]
-                                break
-                        }
-                }
+ss_function <- function(seed, num) {
+        mapping <- map_list[[num]] |> 
+                filter(seed >= Source,
+                       seed <= Max_Source)
+        if (dim(mapping)[1] == 0) {
+                seed
+        } else {
+                seed + mapping$Operation
         }
 }
 
-tictoc::tic()
-end <- FALSE
-for(l in 100001:1000000) {
-        answer <- location_back(l)
-        for (k in 1:10) {
-                if (answer >= seed_map$Starts[k] & output <= seed_map$Ends[k]) {
-                        end <- TRUE
-                        break
+outputs <- NULL
+for (j in 1:10) {
+        candidates <- tibble(lower = seeds_bounds$Starts[j], 
+                             upper = seeds_bounds$Ends[j])
+        for (i in 1:7) {
+                all_bounds <- NULL
+                for (k in 1:dim(candidates)[1]) {
+                        new_ubs <- map_list[[i]] |> 
+                                filter(Max_Source > candidates$lower[k],
+                                       Max_Source < candidates$upper[k]) |> 
+                                arrange(Max_Source) |> 
+                                pull(Max_Source) 
+                        new_lbs <- map_list[[i]] |> 
+                                filter(Source > candidates$lower[k],
+                                       Source < candidates$upper[k]) |> 
+                                arrange(Source) |> 
+                                pull(Source) 
+                        new_ubs <- c(new_ubs, new_lbs-1) |> 
+                                unique()
+                        new_lbs <- c(new_lbs, new_ubs+1) |> 
+                                unique()
+                        all_bounds <- c(all_bounds,
+                                        candidates$lower[k], 
+                                        candidates$upper[k],
+                                        new_ubs, new_lbs) |> 
+                                unique() |> 
+                                sort()
+                        # new_candidates <- tibble(lower = all_bounds[seq(1, length(all_bounds)-1, by = 2)],
+                        #                         upper = all_bounds[seq(2, length(all_bounds), by = 2)])
                 }
+                candidates_vec <- map2(all_bounds, i, ss_function) |> 
+                        unlist()
+                candidates <- tibble(lower = candidates_vec[seq(1, length(candidates_vec)-1, by = 2)],
+                                     upper = candidates_vec[seq(2, length(candidates_vec), by = 2)])
         }
-        if (end) {
-                print(paste0("Solution found on iteration ", l))
-                break
-        }
+        outputs <- c(outputs, candidates_vec)
 }
-tictoc::toc()
+outputs |> min()
