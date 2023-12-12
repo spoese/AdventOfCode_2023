@@ -15,3 +15,11 @@ for (i in 1:4){
         ways <- c(ways, temp)
 }
 prod(ways)
+
+#Part 2
+
+tibble(Hold = 0:as.numeric(paste(data_backup$Time, collapse = ""))) |> 
+        mutate(Distance = Hold*(as.numeric(paste(data_backup$Time, collapse = ""))-Hold)) |> 
+        filter(Distance > as.numeric(paste(data_backup$Distance, collapse = ""))) |> 
+        pull(Hold) |> 
+        length()
