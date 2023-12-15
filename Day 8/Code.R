@@ -1,4 +1,5 @@
 library(tidyverse)
+library(pracma)
 
 instructions_backup <- readxl::read_excel("Data.xlsx", n_max = 1, col_names = FALSE) |> 
         pull(1)
@@ -96,9 +97,9 @@ map_pointers <- maps |>
         ungroup()
 
 next_skip <- function(s) {
-                map_pointers |> 
-                        filter(start == s) |> 
-                        pull(end_location)
+        map_pointers |> 
+                filter(start == s) |> 
+                pull(end_location)
 }
 
 found <- FALSE
@@ -115,3 +116,49 @@ while (!found) {
         }
 }
 iter * length(instructions)
+
+#Part 2
+
+get_loops_zs <- function(s) {
+        zs <- NULL
+        all_starts <- NULL
+        start <- s
+        iter <- 0
+        failsafe_iter <- 0
+        loop <- FALSE
+        while (!loop){
+                failsafe_iter <- failsafe_iter + 1
+                all_starts <- c(all_starts, start)
+                for (i in instructions) {
+                        iter <- iter + 1
+                        start <- next_stop(start, i)
+                        if (str_sub(start, start = -1) == "Z") {
+                                zs <- c(zs, iter)
+                        }
+                }
+                if (start %in% all_starts) {
+                        new_start <- which(all_starts == start)-1
+                        z_to_loop <- iter - zs
+                        time_to_next_z <- zs - length(instructions)*new_start + z_to_loop
+                        all_starts <- c(all_starts, start)
+                        # print(paste0("Loop found on iteration ", failsafe_iter))
+                        loop <- TRUE
+                }
+                if (failsafe_iter == 718) {
+                        loop <- TRUE
+                        print("Loop ended due to time.")
+                }
+        }
+        zs
+}
+
+a_ends <- maps |> 
+        filter(str_sub(start, start = -1) == "A")
+new_ends_check <- a_ends |> 
+        rowwise() |> 
+        mutate(iterations = get_loops_zs(start))
+
+Lcm(new_ends_check$iterations[1], new_ends_check$iterations[2]) |> 
+        Lcm(new_ends_check$iterations[3]) |> 
+        Lcm(new_ends_check$iterations[4]) |> 
+        Lcm(new_ends_check$iterations[5])
