@@ -29,21 +29,89 @@ next_stop <- function(s, direction) {
         }
 }
 
-location <- maps$start[1]
-iter <- 0
-done <- FALSE
-while (!done){
-        for (s in instructions) {
+#Naive brute-force
+# location <- maps$start[1]
+# iter <- 0
+# done <- FALSE
+# while (!done){
+#         for (s in instructions) {
+#                 iter <- iter + 1
+#                 location <- next_stop(location, s)
+#                 if (location == "ZZZ") {
+#                         print(iter)
+#                         done <- TRUE
+#                         break
+#                 }
+#                 if (iter %% 1000000 == 0) {
+#                         print(paste0("On iteration ",iter," the location was ",location))
+#                 }
+#         }
+# }
+
+#Cheaper hopefully
+
+get_end <- function(x, names_out) {
+        temp <- x
+        iter <- 0
+        found <- FALSE
+        for (i in instructions) {
                 iter <- iter + 1
-                location <- next_stop(location, s)
-                if (location == "JHJ") {
-                        print(iter)
-                        done <- TRUE
-                        break
+                temp <- next_stop(temp, i)
+                if (temp == "ZZZ") {
+                        found <- TRUE
+                        found_iter <- iter
                 }
+        } 
+        if (found) {
+                output <- tibble(Col1 = temp, Col2 = found_iter)
+        } else {
+                output <- tibble(Col1 = temp, Col2 = NA)
         }
-        if (iter > 10000) {
-                print("Taking too long")
-                done <- TRUE
+        names(output) <- names_out
+        output
+}
+
+# check_end <- function(x) {
+#         temp <- x
+#         iter <- 0
+#         found <- FALSE
+#         for (i in instructions) {
+#                 iter <- iter + 1
+#                 temp <- next_stop(temp, i)
+#                 if (temp == "ZZZ") {
+#                         found <- TRUE
+#                         break
+#                 }
+#         } 
+#         if (found) {
+#                 iter
+#         } else {
+#                 NA
+#         }
+# }
+
+map_pointers <- maps |> 
+        rowwise() |> 
+        mutate(get_end(start, c("end_location", "zzz_location"))) |> 
+        ungroup()
+
+next_skip <- function(s) {
+                map_pointers |> 
+                        filter(start == s) |> 
+                        pull(end_location)
+}
+
+found <- FALSE
+start <- "AAA"
+iter <- 0
+locations <- vector()
+while (!found) {
+        iter <- iter + 1
+        start <- next_skip(start)
+        if (start == "ZZZ") {
+                found <- TRUE
+        } else {
+                locations <- c(locations, start)
         }
 }
+iter * length(instructions)
